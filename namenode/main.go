@@ -113,7 +113,7 @@ func (s* server) SendPropuesta(ctx pb.context.Context,prop *pb.Propuesta) (*pb.P
 			IpMaquina : Nodes[r1.Intn(len(Nodes)], NombreLibro : badchub.GetNombreLibro() }))
 	} 
 
-	return distribucion, nil
+	return &pb.Propuesta{Chunk : distribucion}, nil
 }
 
 func main() { 
