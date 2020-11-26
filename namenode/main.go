@@ -13,7 +13,13 @@ import (
 
 const (
 	port = ":50051" //Quiza debamos usar distintos puertos segun en que trabajamos
+	addressDataNode1  = "10.10.28.11:50051"
+	addressDataNode2  = "10.10.28.12:50051"
+	addressDataNode3  = "10.10.28.13:50051"
 )
+
+var dataNodes = [3]string{addressDataNode1,addressDataNode2,addressDataNode3}
+
 type server struct {
 	pb.UnimplementedLibroServiceServer
 }
@@ -58,6 +64,56 @@ func newLibro(nombre string,cantidadChunks int) libro{
 	ListaLibros=append(ListaLibros,libroNuevo)
 	LibroChunks[libroNuevo.nombre]=LibroAux
 	return libroNuevo
+}
+
+func (s* server) SendPropuesta(ctx pb.context.Context,prop *pb.Propuesta) (*pb.Propuesta, error) {
+	distribucion := []*pb.PropuestaChunk{}
+	fallos := []*pb.PropuestaChunk{}
+	MaquinasCaidas := []string{}
+	for i, chub := range prop { //Revisamos el status de cada maquina
+		ip := chub.GetIpMaquina()
+		conn, err := grpc.Dial(ip, grpc.WithInsecure(), grpc.WithBlock())
+    	if err != nil {
+    		log.Fatalf("did not connect: %v", err)
+    	}
+    	defer conn.Close()
+    	c := pb.NewLibroServiceClient(conn)
+    	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		status, err := c.VerStatus(ctx,&pb.Status{Status : ""})
+		if status != ok || err != nil {
+			fallos = append(fallos,chub)
+			MaquinasCaidas = append(MaquinasCaidas,ip)
+		} else {
+			distribucion = append(distribucion,chub)
+		}
+
+	}
+
+	Nodes = []string{}
+
+	for _,dir := range dataNodes{
+		in := false
+		for _,badIp := range MaquinasCaidas{
+			if badIp == dir {
+				in = true
+				break
+			}
+		}
+
+		if !in {
+			Nodes = append(Nodes,dir)
+		}
+	}
+    s1 := rand.NewSource(time.Now().UnixNano())
+    r1 := rand.New(s1)
+
+	for i,badchub := range fallos {
+		distribucion = append(distribucion,pb.PropuestaChunk{Offset : badchub.GetOffset(),
+			IpMaquina : Nodes[r1.Intn(len(Nodes)], NombreLibro : badchub.GetNombreLibro() }))
+	} 
+
+	return distribucion, nil
 }
 
 func main() { 
