@@ -7,15 +7,17 @@ import (
 	"context"
 	"google.golang.org/grpc"
 	pb "../proto"
-	"fmt"
 	"os"
+	"time"
+	"math/rand"
+	"fmt"
 )
 
 const (
-	port = ":50051" //Quiza debamos usar distintos puertos segun en que trabajamos
-	addressDataNode1  = "10.10.28.11:50051"
-	addressDataNode2  = "10.10.28.12:50051"
-	addressDataNode3  = "10.10.28.13:50051"
+	port = ":50055" //Quiza debamos usar distintos puertos segun en que trabajamos
+	addressDataNode1  = "localhost:50051"
+	addressDataNode2  = "localhost:50052"
+	addressDataNode3  = "localhost:50053"
 )
 
 var dataNodes = [3]string{addressDataNode1,addressDataNode2,addressDataNode3}
@@ -66,11 +68,12 @@ func newLibro(nombre string,cantidadChunks int) libro{
 	return libroNuevo
 }
 
-func (s* server) SendPropuesta(ctx pb.context.Context,prop *pb.Propuesta) (*pb.Propuesta, error) {
+func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Propuesta, error) {
+	fmt.Println("Analizando propuesta...")
 	distribucion := []*pb.PropuestaChunk{}
 	fallos := []*pb.PropuestaChunk{}
 	MaquinasCaidas := []string{}
-	for i, chub := range prop { //Revisamos el status de cada maquina
+	for _, chub := range prop.GetChunk() { //Revisamos el status de cada maquina
 		ip := chub.GetIpMaquina()
 		conn, err := grpc.Dial(ip, grpc.WithInsecure(), grpc.WithBlock())
     	if err != nil {
@@ -80,17 +83,19 @@ func (s* server) SendPropuesta(ctx pb.context.Context,prop *pb.Propuesta) (*pb.P
     	c := pb.NewLibroServiceClient(conn)
     	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+		fmt.Println("Viendo status")
 		status, err := c.VerStatus(ctx,&pb.Status{Status : ""})
-		if status != ok || err != nil {
+		if status.GetStatus() != "ok" || err != nil {
 			fallos = append(fallos,chub)
 			MaquinasCaidas = append(MaquinasCaidas,ip)
 		} else {
 			distribucion = append(distribucion,chub)
 		}
+		fmt.Println("Status: ",status.GetStatus())
 
 	}
 
-	Nodes = []string{}
+	Nodes := []string{}
 
 	for _,dir := range dataNodes{
 		in := false
@@ -108,11 +113,11 @@ func (s* server) SendPropuesta(ctx pb.context.Context,prop *pb.Propuesta) (*pb.P
     s1 := rand.NewSource(time.Now().UnixNano())
     r1 := rand.New(s1)
 
-	for i,badchub := range fallos {
-		distribucion = append(distribucion,pb.PropuestaChunk{Offset : badchub.GetOffset(),
-			IpMaquina : Nodes[r1.Intn(len(Nodes)], NombreLibro : badchub.GetNombreLibro() }))
+	for _,badchub := range fallos {
+		distribucion = append(distribucion,&pb.PropuestaChunk{Offset : badchub.GetOffset(),
+			IpMaquina : Nodes[r1.Intn(len(Nodes))], NombreLibro : badchub.GetNombreLibro() })
 	} 
-
+	fmt.Println("Nueva distribucion enviada!")
 	return &pb.Propuesta{Chunk : distribucion}, nil
 }
 
