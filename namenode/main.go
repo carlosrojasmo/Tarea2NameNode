@@ -18,9 +18,10 @@ const (
 	addressDataNode1  = "localhost:50051"
 	addressDataNode2  = "localhost:50052"
 	addressDataNode3  = "localhost:50053"
+	addressDataNode4  = "localhost:50054"
 )
 
-var dataNodes = [3]string{addressDataNode1,addressDataNode2,addressDataNode3}
+var dataNodes = [4]string{addressDataNode1,addressDataNode2,addressDataNode3,addressDataNode4}
 
 type server struct {
 	pb.UnimplementedLibroServiceServer
