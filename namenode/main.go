@@ -11,6 +11,8 @@ import (
 	"time"
 	"math/rand"
 	"fmt"
+	"bufio"
+	"strings"
 )
 
 const (
@@ -22,6 +24,8 @@ const (
 )
 
 var dataNodes = [4]string{addressDataNode1,addressDataNode2,addressDataNode3,addressDataNode4}
+
+var funcionamiento = "EsperaInput"
 
 type server struct {
 	pb.UnimplementedLibroServiceServer
@@ -66,8 +70,11 @@ func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool
 }
 
 func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Propuesta, error) {
-	fmt.Println("Analizando propuesta...")
 	distribucion := []*pb.PropuestaChunk{}
+
+	if funcionamiento == "C"{
+	fmt.Println("Analizando propuesta...")
+	
 	fallos := []*pb.PropuestaChunk{}
 	MaquinasCaidas := []string{}
 	for _, chub := range prop.GetChunk() { //Revisamos el status de cada maquina
@@ -115,6 +122,9 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 			IpMaquina : Nodes[r1.Intn(len(Nodes))], NombreLibro : badchub.GetNombreLibro() })
 	} 
 	fmt.Println("Nueva distribucion enviada!")
+    } else {
+    	distribucion = prop.GetChunk()
+    }
 	primera:=true
 	Cantidad:=len(distribucion)
 	for _,chunkIterativo := range distribucion{
@@ -130,6 +140,20 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 }
 
 func main() { 
+	reader := bufio.NewReader(os.Stdin)
+    fmt.Println("NameNode")
+    fmt.Println("---------------------")
+
+    
+    fmt.Print("Indique si desea el funcionamiento centralizado o distribuido (C o D) : ")//se pide si es Downloader y Uploader
+    input1, _ := reader.ReadString('\n')
+    input1 = strings.Replace(input1, "\n", "", -1)
+    input1 = strings.Replace(input1, "\r", "", -1)
+    funcionamiento = input1
+    if funcionamiento != "C" && funcionamiento != "D"{
+    	log.Fatalf("Ingreso mal el tipo de funcionamiento ,abortando")
+    }
+
 	initial:=[]byte("")
 	err := ioutil.WriteFile("log.txt", initial, 0644)
 	lis, err := net.Listen("tcp", port)
