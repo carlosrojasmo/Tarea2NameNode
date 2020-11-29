@@ -26,47 +26,43 @@ var dataNodes = [4]string{addressDataNode1,addressDataNode2,addressDataNode3,add
 type server struct {
 	pb.UnimplementedLibroServiceServer
 }
-var LibroAux= []Chunk{}
-var ListaLibros=[]libro{}
 var LibroChunks= make(map[string][]Chunk) //Nose si este diccionario funca bien
-type libro struct{
-	nombre string
-	cantidadChunks int
-}
+
 type Chunk struct{
 	offset int
 	direccion string
 }
 
-func Log(libro libro, chunk Chunk) bool{
+func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetAddressChunksServer) error{
+	bookNombre:=book.Name
+	
+	for _,chunkNecesario:=range LibroChunks[bookNombre]{
+		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:string(chunkNecesario.offset)}
+		stream.Send(&partelibro)
+	}
+	return nil
+}
+
+
+func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool) bool{
 	log, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY, 0600)
     if err != nil {
         panic(err)
     }
 	defer log.Close()
-	nombreLibro:=libro.nombre
-	cantidadPartes:=libro.cantidadChunks
-	parte:=chunk.offset
-	ip:=chunk.direccion
-	nuevaEntrada:=(nombreLibro+" "+string(cantidadPartes)+"\n"+string(parte)+" "+ip+"\n")
-	if _, err = log.WriteString(nuevaEntrada); err != nil {
-        panic(err)
-    }
+	if primero==true{
+		nuevaEntrada:=(nombreLibro+" "+string(cantidadPartes)+"\n"+string(parte)+" "+ip+"\n")
+		if _, err = log.WriteString(nuevaEntrada); err != nil {
+        	panic(err)
+		}
+	}else{
+		nuevaEntrada:=(string(parte)+" "+ip+"\n")
+		if _, err = log.WriteString(nuevaEntrada); err != nil {
+        	panic(err)
+		}
+	}
 
 	return true
-}
-
-func Ubicar() Chunk{
-	//Debe hacer la ubicacion del libro, acordar quiza(?)
-	NuevaDireccion:=Chunk{}
-	return NuevaDireccion
-}
-//Primero cuando lleguen los chunks se acumularan en LibroAUX , luego al llegar al offset final pasara la siguiente funcion
-func newLibro(nombre string,cantidadChunks int) libro{
-	libroNuevo:=libro{nombre:nombre,cantidadChunks:cantidadChunks}
-	ListaLibros=append(ListaLibros,libroNuevo)
-	LibroChunks[libroNuevo.nombre]=LibroAux
-	return libroNuevo
 }
 
 func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Propuesta, error) {
@@ -119,6 +115,17 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 			IpMaquina : Nodes[r1.Intn(len(Nodes))], NombreLibro : badchub.GetNombreLibro() })
 	} 
 	fmt.Println("Nueva distribucion enviada!")
+	primera:=true
+	Cantidad:=len(distribucion)
+	for _,chunkIterativo := range distribucion{
+		chunkOffset:=chunkIterativo.Offset
+		chunkIP:=chunkIterativo.IpMaquina
+		chunkBook:=chunkIterativo.NombreLibro
+		Log(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
+		primera=false
+		newChunk:=Chunk{offset:int(chunkOffset),direccion:chunkIP}
+		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
+	}
 	return &pb.Propuesta{Chunk : distribucion}, nil
 }
 
