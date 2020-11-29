@@ -41,7 +41,7 @@ func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetA
 	bookNombre:=book.Name
 	
 	for _,chunkNecesario:=range LibroChunks[bookNombre]{
-		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:string(chunkNecesario.offset)}
+		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:bookNombre+":/"+fmt.Sprint(chunkNecesario.offset)}
 		stream.Send(&partelibro)
 	}
 	return nil
@@ -55,12 +55,12 @@ func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool
     }
 	defer log.Close()
 	if primero==true{
-		nuevaEntrada:=(nombreLibro+" "+string(cantidadPartes)+"\n"+string(parte)+" "+ip+"\n")
+		nuevaEntrada:=(nombreLibro+" "+fmt.Sprint(cantidadPartes)+"\n"+fmt.Sprint(parte)+" "+ip+"\n")
 		if _, err = log.WriteString(nuevaEntrada); err != nil {
         	panic(err)
 		}
 	}else{
-		nuevaEntrada:=(string(parte)+" "+ip+"\n")
+		nuevaEntrada:=(fmt.Sprint(parte)+" "+ip+"\n")
 		if _, err = log.WriteString(nuevaEntrada); err != nil {
         	panic(err)
 		}
@@ -136,6 +136,7 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 		newChunk:=Chunk{offset:int(chunkOffset),direccion:chunkIP}
 		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
 	}
+	
 	return &pb.Propuesta{Chunk : distribucion}, nil
 }
 
