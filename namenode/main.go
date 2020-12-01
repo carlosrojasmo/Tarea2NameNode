@@ -41,7 +41,7 @@ func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetA
 	bookNombre:=book.Name
 	
 	for _,chunkNecesario:=range LibroChunks[bookNombre]{
-		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:bookNombre+":/"+fmt.Sprint(chunkNecesario.offset)}
+		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:bookNombre+":-"+fmt.Sprint(chunkNecesario.offset)}
 		stream.Send(&partelibro)
 	}
 	return nil
