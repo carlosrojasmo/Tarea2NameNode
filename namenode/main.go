@@ -47,6 +47,23 @@ func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetA
 	return nil
 }
 
+func (s* server) VerStatus2(ctx context.Context,prop *pb.Propuesta) (*pb.Status, error) {
+	distribucion := prop.GetChunk()
+	primera:=true
+	Cantidad:=len(distribucion)
+	for _,chunkIterativo := range distribucion{
+		chunkOffset:=chunkIterativo.Offset
+		chunkIP:=chunkIterativo.IpMaquina
+		chunkBook:=chunkIterativo.NombreLibro
+		Log(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
+		primera=false
+		newChunk:=Chunk{offset:int(chunkOffset),direccion:chunkIP}
+		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
+	}
+
+	return nil, nil
+}
+
 
 func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool) bool{
 	log, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY, 0600)
