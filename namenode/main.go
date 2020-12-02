@@ -17,9 +17,9 @@ import (
 
 const (
 	port = ":50051" //Quiza debamos usar distintos puertos segun en que trabajamos
-	addressDataNode1  = "localhost:50051"
-	addressDataNode2  = "localhost:50051"
-	addressDataNode3  = "localhost:50051"
+	addressDataNode1 = "10.10.28.101:50051"
+	addressDataNode2  = "10.10.28.100:50051"
+	addressDataNode3  = "10.10.28.102:50051"
 )
 var lockCentralizado = false
 var dataNodes = [3]string{addressDataNode1,addressDataNode2,addressDataNode3}
