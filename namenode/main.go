@@ -97,8 +97,9 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 		ip := chub.GetIpMaquina()
 		conn, err := grpc.Dial(ip, grpc.WithInsecure(), grpc.WithBlock(),grpc.WithTimeout(30 * time.Second))
     	if err != nil {
-    		log.Fatalf("did not connect: %v", err)
-    	}
+    		fallos = append(fallos,chub)
+			MaquinasCaidas = append(MaquinasCaidas,ip)
+    	} else {
     	defer conn.Close()
     	c := pb.NewLibroServiceClient(conn)
     	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -112,6 +113,7 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 			distribucion = append(distribucion,chub)
 		}
 		fmt.Println("Status: ",status.GetStatus())
+	}
 
 	}
 
