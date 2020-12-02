@@ -41,7 +41,7 @@ func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetA
 	bookNombre:=book.Name
 	
 	for _,chunkNecesario:=range LibroChunks[bookNombre]{
-		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:bookNombre+":-"+fmt.Sprint(chunkNecesario.offset)}
+		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:strings.Split(bookNombre,".")[0]+"--"+fmt.Sprint(chunkNecesario.offset)}
 		stream.Send(&partelibro)
 	}
 	return nil
@@ -61,14 +61,14 @@ func (s* server) VerStatus2(ctx context.Context,prop *pb.Propuesta) (*pb.Status,
 		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
 	}
 
-	return nil, nil
+	return &pb.Status{Status:"ok"}, nil
 }
 
 
 func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool) bool{
 	log, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY, 0600)
     if err != nil {
-        panic(err)
+        log,err=os.Create("log.txt")
     }
 	defer log.Close()
 	if primero==true{
