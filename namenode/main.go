@@ -16,23 +16,22 @@ import (
 )
 
 const (
-	port = ":50055" //Quiza debamos usar distintos puertos segun en que trabajamos
+	port = ":50051" //Quiza debamos usar distintos puertos segun en que trabajamos
 	addressDataNode1  = "localhost:50051"
-	addressDataNode2  = "localhost:50052"
-	addressDataNode3  = "localhost:50053"
-	addressDataNode4  = "localhost:50054"
+	addressDataNode2  = "localhost:50051"
+	addressDataNode3  = "localhost:50051"
 )
-
-var dataNodes = [4]string{addressDataNode1,addressDataNode2,addressDataNode3,addressDataNode4}
+var lockCentralizado = false
+var dataNodes = [3]string{addressDataNode1,addressDataNode2,addressDataNode3}
 
 var funcionamiento = "EsperaInput"
 
 type server struct {
 	pb.UnimplementedLibroServiceServer
 }
-var LibroChunks= make(map[string][]Chunk) //Nose si este diccionario funca bien
+var libroChunks= make(map[string][]aChunk) //Nose si este diccionario funca bien
 
-type Chunk struct{
+type aChunk struct{
 	offset int
 	direccion string
 }
@@ -40,7 +39,7 @@ type Chunk struct{
 func (s* server) GetAddressChunks( book *pb.BookName,stream pb.LibroService_GetAddressChunksServer) error{
 	bookNombre:=book.Name
 	
-	for _,chunkNecesario:=range LibroChunks[bookNombre]{
+	for _,chunkNecesario:=range libroChunks[bookNombre]{
 		partelibro:=pb.SendUbicacion{Ubicacion:chunkNecesario.direccion,Id:strings.Split(bookNombre,".")[0]+"--"+fmt.Sprint(chunkNecesario.offset)}
 		stream.Send(&partelibro)
 	}
@@ -55,17 +54,17 @@ func (s* server) VerStatus2(ctx context.Context,prop *pb.Propuesta) (*pb.Status,
 		chunkOffset:=chunkIterativo.Offset
 		chunkIP:=chunkIterativo.IpMaquina
 		chunkBook:=chunkIterativo.NombreLibro
-		Log(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
+		escribirLog(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
 		primera=false
-		newChunk:=Chunk{offset:int(chunkOffset),direccion:chunkIP}
-		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
+		newChunk:=aChunk{offset:int(chunkOffset),direccion:chunkIP}
+		libroChunks[chunkBook]=append(libroChunks[chunkBook],newChunk)
 	}
 
 	return &pb.Status{Status:"ok"}, nil
 }
 
 
-func Log(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool) bool{
+func escribirLog(ip string,nombreLibro string,parte int,cantidadPartes int ,primero bool) bool{
 	log, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY, 0600)
     if err != nil {
         log,err=os.Create("log.txt")
@@ -120,8 +119,8 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 
 	for _,dir := range dataNodes{
 		in := false
-		for _,badIp := range MaquinasCaidas{
-			if badIp == dir {
+		for _,badIP := range MaquinasCaidas{
+			if badIP == dir {
 				in = true
 				break
 			}
@@ -148,10 +147,18 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 		chunkOffset:=chunkIterativo.Offset
 		chunkIP:=chunkIterativo.IpMaquina
 		chunkBook:=chunkIterativo.NombreLibro
-		Log(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
+		for{
+			if lockCentralizado==false{
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		lockCentralizado=true
+		escribirLog(chunkIP,chunkBook,int(chunkOffset),Cantidad,primera)
+		lockCentralizado=false
 		primera=false
-		newChunk:=Chunk{offset:int(chunkOffset),direccion:chunkIP}
-		LibroChunks[chunkBook]=append(LibroChunks[chunkBook],newChunk)
+		newChunk:=aChunk{offset:int(chunkOffset),direccion:chunkIP}
+		libroChunks[chunkBook]=append(libroChunks[chunkBook],newChunk)
 	}
 	
 	return &pb.Propuesta{Chunk : distribucion}, nil
@@ -163,7 +170,7 @@ func main() {
     fmt.Println("---------------------")
 
     
-    fmt.Print("Indique si desea el funcionamiento centralizado o distribuido (C o D) : ")//se pide si es Downloader y Uploader
+    fmt.Print("Indique si desea el funcionamiento centralizado o distribuido (C o D) : ")//se pide si es Centralizado o Distribuido
     input1, _ := reader.ReadString('\n')
     input1 = strings.Replace(input1, "\n", "", -1)
     input1 = strings.Replace(input1, "\r", "", -1)
