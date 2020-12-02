@@ -95,7 +95,7 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 	MaquinasCaidas := []string{}
 	for _, chub := range prop.GetChunk() { //Revisamos el status de cada maquina
 		ip := chub.GetIpMaquina()
-		conn, err := grpc.Dial(ip, grpc.WithInsecure(), grpc.WithBlock())
+		conn, err := grpc.Dial(ip, grpc.WithInsecure(), grpc.WithBlock(),grpc.WithTimeout(30 * time.Second))
     	if err != nil {
     		log.Fatalf("did not connect: %v", err)
     	}
