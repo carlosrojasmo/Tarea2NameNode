@@ -99,6 +99,7 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
     	if err != nil {
     		fallos = append(fallos,chub)
 			MaquinasCaidas = append(MaquinasCaidas,ip)
+			fmt.Println("Caido a full")
     	} else {
     	defer conn.Close()
     	c := pb.NewLibroServiceClient(conn)
