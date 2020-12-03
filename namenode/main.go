@@ -99,13 +99,12 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
     	if err != nil {
     		fallos = append(fallos,chub)
 			MaquinasCaidas = append(MaquinasCaidas,ip)
-			fmt.Println("Caido a full")
+
     	} else {
     	defer conn.Close()
     	c := pb.NewLibroServiceClient(conn)
     	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		fmt.Println("Viendo status")
 		status, err := c.VerStatus(ctx,&pb.Status{Status : ""})
 		if status.GetStatus() != "ok" || err != nil {
 			fallos = append(fallos,chub)
@@ -113,7 +112,7 @@ func (s* server) SendPropuesta(ctx context.Context,prop *pb.Propuesta) (*pb.Prop
 		} else {
 			distribucion = append(distribucion,chub)
 		}
-		fmt.Println("Status: ",status.GetStatus())
+		
 	}
 
 	}
@@ -178,7 +177,7 @@ func main() {
     input1 = strings.Replace(input1, "\n", "", -1)
     input1 = strings.Replace(input1, "\r", "", -1)
     funcionamiento = input1
-    if funcionamiento != "C" && funcionamiento != "D"{
+    if funcionamiento != "C" && funcionamiento != "D"{ //se pregunta si e se quiere funcionamiento centralizado
     	log.Fatalf("Ingreso mal el tipo de funcionamiento ,abortando")
     }
 
